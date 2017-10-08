@@ -68,54 +68,66 @@ class Bot(object):
         list_p = pattern_text.split()
         list_m = message.split()
         i, j, n, m = 0, 0, len(list_p), len(list_m)
+        priority = 0
 
         # TODO(mmicu): Aici e locul pentru Domnul Victor sa straluceasca
-        if pattern_text.find('*') == -1:
+        if pattern_text.find('*') == -1 and pattern_text.find("_") == -1:
             if n == m :
                 while i < n:
                     if isequal(list_p[i],list_m[i]):
                         i += 1
                     else:
                         return (False,[])
-                return (True,[])
+                return (True,[],0)
             else :
-                return (False,[])
+                return (False,[],0)
         else :
             list_with_star = [] # o sa fie perechi (index,value) cu semnificatia al index star poate fi inlocuit cu valoarea value
             count = 0            
             while i < n and j < m:
-                if list_p[i] != "*": 
+                if list_p[i] != "*" and list_p[i] != "_": 
                     if isequal(list_p[i],list_m[j]):
                         i += 1
                         j += 1
                         continue
                     else: 
-                        return (False,[])
+                        return (False,[],0)
                 else:
                     count += 1;
+                    length = 0;
                     val = "";
                     if i + 1 >= n: 
                         while j < m:
                           val += list_m[j];
                           val += " "
                           j += 1
+                          length += 1
                         i = n
-                        list_with_star.append((count,val.strip()))
+                        if list_p[i] == "*":
+                            priority -= length
+                            list_with_star.append((count,val.strip()))
+                        elif list_p[i] == "_":
+                            priority += 10
                     else :
                         while j < m :
                             if not isequal(list_p[i + 1],list_m[j]) :
                                 val += list_m[j]
                                 val += " "
                                 j += 1
+                                length += 1
                             else :
                                 i += 1;
-                                list_with_star.append((count,val.strip()))
+                                if list_p[i] == "*":
+                                    priority -= length
+                                    list_with_star.append((count,val.strip()))
+                                elif list_p[i] == "_" :
+                                    priority += 10
                                 break
                         if j >= m:
-                            return (False,[])
+                            return (False,[],0)
             if i == n and j == m:
-                return (True,list_with_star)
-            return (False,[])
+                return (True,list_with_star,priority)
+            return (False,[],0)
 
     def match(self, message):
         """Return the patterns that matches"""
@@ -124,6 +136,7 @@ class Bot(object):
             t = self._match(pattern.text, message)
             if t[0]:
                 patterns.append(pattern)
+                print(t[1],t[2])
         return patterns
 
     def sort(self, patterns):
