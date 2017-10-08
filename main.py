@@ -59,7 +59,7 @@ def isequal(str1,str2):
 
 def check_char(c,length,priority,list_with_star,val,count):
     if c == "*":
-       priority -= length
+       priority += length*0.05
        list_with_star.append((count,val.strip()))
     elif c == "_":
         priority += 0.3
