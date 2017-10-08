@@ -67,6 +67,7 @@ class Bot(object):
         self._file_names = file_names
         self._patterns = {}
         self._variabile = {}
+        self._star
 
         self.learn(self._file_names)
         self._handles = {
@@ -179,7 +180,9 @@ class Bot(object):
     def _execute(self, template, list_with_start):
         response = ""
         for content in template.contents:
-            if isinstance(content, str):
+            # print("CONTENT - ", content, " - ", type(content))
+            if isinstance(content, (str, bs4.element.NavigableString)):
+                # print("STR - ", content)
                 response += content
             elif isinstance(content, bs4.element.Tag):
                 to_run = self._handles.get(content.name, self._h_default)
@@ -202,10 +205,11 @@ class Bot(object):
 
         # le sortam in functie de relevanta (alea cu multe * sunt mai proate decat alea normale)
         patterns = self.sort(patterns)
-        print("[debug] tipare potrivite:", "\n".join([str(p) for p in patterns]))
+        # print("[debug] tipare potrivite:", "\n".join([str(p) for p in patterns]))
         # avem match
         if patterns:
             ales = patterns.pop(0)
+            print("[DEBUG] Pattern ales", ales)
             return self._handle(self._patterns[ales[0]], ales[1])
         return DEFAULT_RESPONSE
 
