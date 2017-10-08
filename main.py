@@ -5,9 +5,12 @@ from __future__ import print_function
 import bs4
 from bs4 import BeautifulSoup as Soup
 
+import util
+
 import re
 import os
 import random
+import datetime
 
 # alice, standard, None
 # BOT_TYPE = "alice"
@@ -67,6 +70,7 @@ class Bot(object):
         self._file_names = file_names
         self._patterns = {}
         self._variabile = {}
+        self._bot = {"":""}
 
         self.learn(self._file_names)
         self._handles = {
@@ -74,7 +78,89 @@ class Bot(object):
             "srai": self._h_srai,
             "sr": self._h_srai,
             "star": self._h_star,
+            "thatstar": self._h_star,
+            "bot": self._h_bot,
+            "get": self._h_get,
+            "date": self._h_date,
+            "id": self._h_id,
+            "size": self._h_size,
+            "uppercase": self._h_uppercase,
+            "lowecase": self._h_lowercase,
+            "title": self._h_formal,
+            "think": self._h_think,
+            "set": self._h_set,
+            "gossip": self._h_gossip,
+            "person": self._h_person,
+            "person2": self._h_person2,
+            "gender": self._h_gender
         }
+
+    def _h_gender(self, tag, list_with_star):
+        response = self._execute(tag, list_with_star)
+        for re, val in util.defaultGender.items():
+            response.replace(re, val)
+        return response
+
+    def _h_person(self, tag, list_with_star):
+        response = self._execute(tag, list_with_star)
+        for re, val in util.defaultPerson.items():
+            response.replace(re, val)
+        return response
+
+    def _h_person2(self, tag, list_with_star):
+        response = self._execute(tag, list_with_star)
+        for re, val in util.defaultPerson2.items():
+            response.replace(re, val)
+        return response
+
+    def _h_person(self, tag, list_with_star):
+        response = self._execute(tag, list_with_star)
+        for re, val in util.defaultPerson.items():
+            response.replace(re, val)
+        return response
+
+    def _h_gossip(self, tag, list_with_star):
+        response = self._execute(tag, list_with_star)
+        with open("gossip.txt", "w") as f:
+            f.writelines([response])
+        return ""
+
+    def _h_set(self, tag, list_with_star):
+        response = self._execute(tag, list_with_star)
+        self._variabile[tag["name"]] = response
+        return ""
+
+    def _h_think(self, tag, list_with_star):
+        self._execute(tag, list_with_star)
+        return ""
+
+    def _h_formal(self, tag, list_with_star):
+        response = self._execute(tag, list_with_star)
+        return response.title()
+
+    def _h_lowercase(self, tag, list_with_star):
+        response = self._execute(tag, list_with_star)
+        return response.lower()
+
+    def _h_uppercase(self, tag, list_with_star):
+        response = self._execute(tag, list_with_star)
+        return response.uppercase()
+
+    def _h_date(self, tag, list_with_star):
+        return str(datetime.datetime.now())
+
+    def _h_size(self, tag, list_with_star):
+        return str(len(self._patterns))
+
+    def _h_id(self, tag, list_with_star):
+        return str("localhost")
+
+    def _h_bot(self, tag, list_with_star):
+        return self._bot.get(tag.get("name", ""), "")
+
+    def _h_get(self, tag, list_with_star):
+        return self._variabile.get(tag.get("name", ""), "")
+
 
     def _h_random(self, tag, list_with_star):
         response = ""
@@ -221,6 +307,9 @@ class Bot(object):
 
     def response(self, message):
         """Returneza raspunsul."""
+        # normalizarea
+        for re, val in util.defaultNormal.items():
+            message.replace(re, val)
         # vedem ce tipare se potrivesc
         patterns = self.match(message)
 
