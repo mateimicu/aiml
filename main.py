@@ -39,6 +39,14 @@ def isequal(str1,str2):
         return True
     return False
 
+def check_char(c,length,priority,list_with_star,val,count):
+    if c == "*":
+       priority -= length
+       list_with_star.append((count,val.strip()))
+    elif c == "_":
+        priority += 10
+    return priority
+
 
 class Bot(object):
     def __init__(self, file_names):
@@ -77,7 +85,7 @@ class Bot(object):
                     if isequal(list_p[i],list_m[i]):
                         i += 1
                     else:
-                        return (False,[])
+                        return (False,[],0)
                 return (True,[],0)
             else :
                 return (False,[],0)
@@ -102,12 +110,8 @@ class Bot(object):
                           val += " "
                           j += 1
                           length += 1
+                        check_char(list_p[i],length,priority,list_with_star,val,count)
                         i = n
-                        if list_p[i] == "*":
-                            priority -= length
-                            list_with_star.append((count,val.strip()))
-                        elif list_p[i] == "_":
-                            priority += 10
                     else :
                         while j < m :
                             if not isequal(list_p[i + 1],list_m[j]) :
@@ -116,12 +120,8 @@ class Bot(object):
                                 j += 1
                                 length += 1
                             else :
+                                check_char(list_p[i],length,priority,list_with_star,val,count)
                                 i += 1;
-                                if list_p[i] == "*":
-                                    priority -= length
-                                    list_with_star.append((count,val.strip()))
-                                elif list_p[i] == "_" :
-                                    priority += 10
                                 break
                         if j >= m:
                             return (False,[],0)
@@ -136,7 +136,6 @@ class Bot(object):
             t = self._match(pattern.text, message)
             if t[0]:
                 patterns.append(pattern)
-                print(t[1],t[2])
         return patterns
 
     def sort(self, patterns):
