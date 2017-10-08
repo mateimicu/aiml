@@ -79,6 +79,7 @@ class Bot(object):
 
         self.learn(self._file_names)
         self._handles = {
+            "br": self._h_br,
             "random": self._h_random,
             "srai": self._h_srai,
             "sr": self._h_srai,
@@ -100,6 +101,8 @@ class Bot(object):
             "gender": self._h_gender
         }
 
+    def _h_br(self, tag, list_with_star):
+        return "\n"
     def _h_gender(self, tag, list_with_star):
         response = self._execute(tag, list_with_star)
         for re, val in util.defaultGender.items():
@@ -193,7 +196,7 @@ class Bot(object):
         return response
 
     def _h_default(self, tag, list_with_star):
-        print("[DEBUG] Nu recunoastem {}".format(tag))
+        print("[DEBUG] Nu recunoastem {} : \n\n {} \n\n\n".format(tag, tag.contents))
         return ""
 
     def _h_text(self, tag, list_with_star):
@@ -327,7 +330,7 @@ class Bot(object):
 
         # le sortam in functie de relevanta (alea cu multe * sunt mai proate decat alea normale)
         patterns = self.sort(patterns)
-        print("[debug] tipare potrivite:", "\n".join([str(p) for p in patterns]))
+        # print("[debug] tipare potrivite:", "\n".join([str(p) for p in patterns]))
         # avem match
         if patterns:
             ales = patterns.pop(0)
