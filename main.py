@@ -65,36 +65,64 @@ class Bot(object):
         """Returneaza True data pattern_text se potriveste cu message."""
         pattern_text = clean(pattern_text)
         message = clean(message)
+        list_p = pattern_text.split()
+        list_m = message.split()
+        i, j, n, m = 0, 0, len(list_p), len(list_m)
 
         # TODO(mmicu): Aici e locul pentru Domnul Victor sa straluceasca
         if pattern_text.find('*') == -1:
-            if re.findall(pattern_text, message):
-                return True
+            if n == m :
+                while i < n:
+                    if isequal(list_p[i],list_m[i]):
+                        i += 1
+                    else:
+                        return (False,[])
+                return (True,[])
             else :
-                return False
+                return (False,[])
         else :
-            list_p = pattern_text.split()
-            list_m = message.split()
-            # print(list_p)
-            # print(list_m)
-            # print(list_p[0] == "one")
-            i, j, n, m = 0, 0, len(list_p), len(list_m)
+            list_with_star = [] # o sa fie perechi (index,value) cu semnificatia al index star poate fi inlocuit cu valoarea value
+            count = 0            
             while i < n and j < m:
                 if list_p[i] != "*": 
-                    if list_p[i] == list_m[j]:
+                    if isequal(list_p[i],list_m[j]):
+                        i += 1
+                        j += 1
                         continue
                     else: 
-                        return False
+                        return (False,[])
                 else:
-                    print(1)#TODO
-
-            return False
+                    count += 1;
+                    val = "";
+                    if i + 1 >= n: 
+                        while j < m:
+                          val += list_m[j];
+                          val += " "
+                          j += 1
+                        i = n
+                        list_with_star.append((count,val.strip()))
+                    else :
+                        while j < m :
+                            if not isequal(list_p[i + 1],list_m[j]) :
+                                val += list_m[j]
+                                val += " "
+                                j += 1
+                            else :
+                                i += 1;
+                                list_with_star.append((count,val.strip()))
+                                break
+                        if j >= m:
+                            return (False,[])
+            if i == n and j == m:
+                return (True,list_with_star)
+            return (False,[])
 
     def match(self, message):
         """Return the patterns that matches"""
         patterns = []
         for pattern, _ in self._patterns.items():
-            if self._match(pattern.text, message):
+            t = self._match(pattern.text, message)
+            if t[0]:
                 patterns.append(pattern)
         return patterns
 
