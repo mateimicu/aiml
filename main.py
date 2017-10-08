@@ -29,6 +29,8 @@ DEFAULT_RESPONSE = "Nu am inteles"
 EXIT = "exit"
 BYE = "Bye Bye!"
 
+LAST_TAGS = []
+
 REMOVE_CHARS = ".!?;[]'{}()"
 
 # XML tags
@@ -38,6 +40,7 @@ PATTERN = "pattern"
 
 # DEBUG = False
 DEBUG = True
+RECURSIVE = False
 
 def pprint(*args, **kwargs):
     if DEBUG:
@@ -82,7 +85,7 @@ def check_char(c,length,priority,list_with_star,val,count):
 class Bot(object):
     """Aiml bot."""
     def __init__(self, file_names):
-        global DEBUG
+        global DEBUG, LAST_TAGS, RECURSIVE
         self._file_names = file_names
         self._patterns = {}
         self._variabile = {}
@@ -120,6 +123,7 @@ class Bot(object):
         DEBUG = False
         self.learn(self._file_names)
         DEBUG = now
+        RECURSIVE = True
 
     def _h_br(self, tag, list_with_star):
         return "\n"
@@ -360,7 +364,13 @@ class Bot(object):
         return full + has_under + has_star
 
     def _execute(self, template, list_with_start):
+        global LAST_TAGS , RECURSIVE
         pprint("[CALL execute] Tag: {}".format(template))
+        pprint("[Recursive {}] : {}".format(RECURSIVE, LAST_TAGS))
+        if RECURSIVE:
+            if (str(template.contents), template.text) in [(str(t.contents), t.text) for t in LAST_TAGS]:
+                return self.response(" ")
+            LAST_TAGS.append(template)
         response = ""
 
         for content in template.contents:
@@ -384,6 +394,7 @@ class Bot(object):
 
     def response(self, message):
         """Returneza raspunsul."""
+        global LAST_TAGS
         # normalizarea
         for re, val in util.defaultNormal.items():
             message.replace(re, val)
@@ -403,7 +414,10 @@ class Bot(object):
         if patterns:
             ales = patterns.pop(0)
             pprint("[DEBUG] Pattern ales", ales, "---", self._patterns[ales[0]])
+            LAST_TAGS = []
             return self._handle(self._patterns[ales[0]], ales[1])
+
+        LAST_TAGS = []
         return DEFAULT_RESPONSE
 
 
