@@ -2,10 +2,23 @@
 """AIML parser for IA."""
 from __future__ import print_function
 
+import bs4
 from bs4 import BeautifulSoup as Soup
-import re
 
-AIML_FILES = ["basic_chat.aiml"]
+import re
+import os
+import random
+
+# alice, standard, None
+# BOT_TYPE = "alice"
+BOT_TYPE = "standard"
+
+# BOT_TYPE = "alice"
+if BOT_TYPE:
+    AIML_FILES = ["{}/{}".format(BOT_TYPE, f) for f in os.listdir(BOT_TYPE)]
+else:
+    AIML_FILES = ["basic_chat.aiml"]
+
 DEFAULT_RESPONSE = "Nu am inteles"
 EXIT = "exit"
 BYE = "Bye Bye!"
@@ -24,15 +37,15 @@ def clean(msg):
 
 def isequal(str1,str2):
     n, m = len(str1), len(str2)
-    dp = [[int(0) for i in range(m+1)] for j in range(n+1)];
-    i = 0;
-    while i < n :
-        j = 0;
+    dp = [[int(0) for i in range(m+1)] for j in range(n+1)]
+    i = 0
+    while i < n:
+        j = 0
         while j < m:
             if str1[i] == str2[j]:
-                dp[i + 1][j + 1] = dp[i][j] + 1 
+                dp[i + 1][j + 1] = dp[i][j] + 1
             else:
-                dp[i + 1][j + 1] = max(dp[i][j + 1],dp[i + 1][j])
+                dp[i + 1][j + 1] = max(dp[i][j + 1], dp[i + 1][j])
             j += 1
         i += 1
     if (dp[n][m] * 1.0) / n >= 0.7:
@@ -49,12 +62,32 @@ def check_char(c,length,priority,list_with_star,val,count):
 
 
 class Bot(object):
+    """Aiml bot."""
     def __init__(self, file_names):
         self._file_names = file_names
         self._patterns = {}
         self._variabile = {}
-        
+
         self.learn(self._file_names)
+        self._handles = {
+            "random": self._h_random
+        }
+
+    def _h_default(self, tag, list_with_star):
+        print("[DEBUG] Nu recunoastem {}".format(tag))
+        return ""
+
+    def _h_random(self, tag, list_with_star):
+        response = ""
+        lis = tag.findChildren("li")
+        li = random.sample(lis, 1).pop()
+        return response + self._execute(li, list_with_star)
+
+    def _h_text(self, tag, list_with_star):
+        response = ""
+        lis = tag.findChildren("li")
+        li = random.sample(lis, 1).pop()
+        return response + self._execute(li, list_with_star)
 
     def _learn(self, file_name):
         data = open(file_name, "r").read()
@@ -114,7 +147,7 @@ class Bot(object):
                         i = n
                     else :
                         while j < m :
-                            if not isequal(list_p[i + 1],list_m[j]) :
+                            if not isequal(list_p[i + 1],list_m[j]):
                                 val += list_m[j]
                                 val += " "
                                 j += 1
@@ -132,15 +165,35 @@ class Bot(object):
     def match(self, message):
         """Return the patterns that matches"""
         patterns = []
-        for pattern, _ in self._patterns.items():
-            t = self._match(pattern.text, message)
-            if t[0]:
-                patterns.append(pattern)
+        for pattern in self._patterns.keys():
+            tem = self._match(pattern.text, message)
+            if tem[0]:
+                patterns.append((pattern, tem[1], tem[2]))
         return patterns
 
     def sort(self, patterns):
         """Sortam tiparele in functie de relevanta."""
+        patterns.sort(key = lambda x: x[2])
         return patterns
+
+    def _execute(self, template, list_with_start):
+        response = ""
+        for content in template.contents:
+            if isinstance(content, str):
+                response += content
+            elif isinstance(content, bs4.element.Tag):
+                to_run = self._handles.get(content.name, self._h_default)
+                print("[debug] Tag {} running {}".format(content, to_run))
+                response += to_run(content, list_with_start)
+        return response
+
+
+    def _handle(self, templates, list_with_star):
+        total_response = ""
+        for template in templates:
+            total_response += self._execute(template, list_with_star)
+        return total_response
+
 
     def response(self, message):
         """Returneza raspunsul."""
@@ -149,19 +202,23 @@ class Bot(object):
 
         # le sortam in functie de relevanta (alea cu multe * sunt mai proate decat alea normale)
         patterns = self.sort(patterns)
-        print("[debug] tipare potrivite:",patterns)
+        print("[debug] tipare potrivite:", "\n".join([str(p) for p in patterns]))
+        # avem match
+        if patterns:
+            ales = patterns.pop(0)
+            return self._handle(self._patterns[ales[0]], ales[1])
         return DEFAULT_RESPONSE
+
 
 def main():
     bot = Bot(AIML_FILES)
-    # import pdb; pdb.set_trace()
     while True:
         question = raw_input(">>")
         if question.lower().strip() == "exit":
             print(BYE)
             exit()
-        response = bot.response(question)
-        print(response)
+        resp = bot.response(question)
+        print("+++++", resp)
 
 
 if __name__ == "__main__":
