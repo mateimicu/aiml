@@ -35,6 +35,11 @@ def clean(msg):
         msg = msg.replace(char, " ")
     return msg.lower().strip().replace("  ", " ")
 
+def isok(a,b,c):
+    if abs(a-b) > 2 or abs(a-c) > 2:
+        return False
+    return True
+
 def isequal(str1,str2):
     n, m = len(str1), len(str2)
     dp = [[int(0) for i in range(m+1)] for j in range(n+1)]
@@ -48,16 +53,16 @@ def isequal(str1,str2):
                 dp[i + 1][j + 1] = max(dp[i][j + 1], dp[i + 1][j])
             j += 1
         i += 1
-    if (dp[n][m] * 1.0) / n >= 0.7:
-        return True
-    return False
+    if (float(dp[n][m]) * 1.0) / float(n) >= 0.8 and isok(dp[n][m],n,m):
+        return (True,(float(dp[n][m]) * 1.0) / float(max(n,m)))
+    return (False,0)
 
 def check_char(c,length,priority,list_with_star,val,count):
     if c == "*":
        priority -= length
        list_with_star.append((count,val.strip()))
     elif c == "_":
-        priority += 10
+        priority += 0.3
     return priority
 
 
@@ -109,25 +114,32 @@ class Bot(object):
         list_p = pattern_text.split()
         list_m = message.split()
         i, j, n, m = 0, 0, len(list_p), len(list_m)
-        priority = 0
+        priority = 0 * 1.0
+
+        if n > m :
+            return (False,[],0)
 
         # TODO(mmicu): Aici e locul pentru Domnul Victor sa straluceasca
         if pattern_text.find('*') == -1 and pattern_text.find("_") == -1:
             if n == m :
                 while i < n:
-                    if isequal(list_p[i],list_m[i]):
+                    tu = isequal(list_p[i],list_m[i])
+                    priority += tu[1]
+                    if tu[0]:
                         i += 1
                     else:
                         return (False,[],0)
-                return (True,[],0)
+                return (True,[],priority)
             else :
-                return (False,[],0)
+                return (False,[],1)
         else :
             list_with_star = [] # o sa fie perechi (index,value) cu semnificatia al index star poate fi inlocuit cu valoarea value
             count = 0            
             while i < n and j < m:
                 if list_p[i] != "*" and list_p[i] != "_": 
-                    if isequal(list_p[i],list_m[j]):
+                    tu = isequal(list_p[i],list_m[i])
+                    priority += tu[1]
+                    if tu[0]:
                         i += 1
                         j += 1
                         continue
