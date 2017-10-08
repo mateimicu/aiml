@@ -143,7 +143,7 @@ class Bot(object):
                           val += " "
                           j += 1
                           length += 1
-                        check_char(list_p[i],length,priority,list_with_star,val,count)
+                        priority = check_char(list_p[i],length,priority,list_with_star,val,count)
                         i = n
                     else :
                         while j < m :
@@ -153,7 +153,7 @@ class Bot(object):
                                 j += 1
                                 length += 1
                             else :
-                                check_char(list_p[i],length,priority,list_with_star,val,count)
+                                priority = check_char(list_p[i],length,priority,list_with_star,val,count)
                                 i += 1;
                                 break
                         if j >= m:
