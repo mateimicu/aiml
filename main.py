@@ -22,6 +22,24 @@ def clean(msg):
         msg = msg.replace(char, " ")
     return msg.lower().strip().replace("  ", " ")
 
+def isequal(str1,str2):
+    n, m = len(str1), len(str2)
+    dp = [[int(0) for i in range(m+1)] for j in range(n+1)];
+    i = 0;
+    while i < n :
+        j = 0;
+        while j < m:
+            if str1[i] == str2[j]:
+                dp[i + 1][j + 1] = dp[i][j] + 1 
+            else:
+                dp[i + 1][j + 1] = max(dp[i][j + 1],dp[i + 1][j])
+            j += 1
+        i += 1
+    if (dp[n][m] * 1.0) / n >= 0.7:
+        return True
+    return False
+
+
 class Bot(object):
     def __init__(self, file_names):
         self._file_names = file_names
@@ -48,12 +66,29 @@ class Bot(object):
         pattern_text = clean(pattern_text)
         message = clean(message)
 
-        # doar un match simplu
-        if re.findall(pattern_text, message):
-            return True
-
         # TODO(mmicu): Aici e locul pentru Domnul Victor sa straluceasca
-        return False
+        if pattern_text.find('*') == -1:
+            if re.findall(pattern_text, message):
+                return True
+            else :
+                return False
+        else :
+            list_p = pattern_text.split()
+            list_m = message.split()
+            # print(list_p)
+            # print(list_m)
+            # print(list_p[0] == "one")
+            i, j, n, m = 0, 0, len(list_p), len(list_m)
+            while i < n and j < m:
+                if list_p[i] != "*": 
+                    if list_p[i] == list_m[j]:
+                        continue
+                    else: 
+                        return False
+                else:
+                    print(1)#TODO
+
+            return False
 
     def match(self, message):
         """Return the patterns that matches"""
@@ -87,6 +122,7 @@ def main():
             exit()
         response = bot.response(question)
         print(response)
+
 
 if __name__ == "__main__":
     main()
