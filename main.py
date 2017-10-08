@@ -168,11 +168,12 @@ class Bot(object):
         for pattern in self._patterns.keys():
             tem = self._match(pattern.text, message)
             if tem[0]:
-                patterns.append((pattern, tem[1]))
+                patterns.append((pattern, tem[1], tem[2]))
         return patterns
 
     def sort(self, patterns):
         """Sortam tiparele in functie de relevanta."""
+        patterns.sort(key = lambda x: x[2])
         return patterns
 
     def _execute(self, template, list_with_start):
@@ -201,7 +202,7 @@ class Bot(object):
 
         # le sortam in functie de relevanta (alea cu multe * sunt mai proate decat alea normale)
         patterns = self.sort(patterns)
-        # print("[debug] tipare potrivite:", patterns)
+        print("[debug] tipare potrivite:", "\n".join([str(p) for p in patterns]))
         # avem match
         if patterns:
             ales = patterns.pop(0)
