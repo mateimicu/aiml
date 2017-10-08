@@ -67,22 +67,43 @@ class Bot(object):
         self._file_names = file_names
         self._patterns = {}
         self._variabile = {}
-        self._star
 
         self.learn(self._file_names)
         self._handles = {
-            "random": self._h_random
+            "random": self._h_random,
+            "srai": self._h_srai,
+            "sr": self._h_srai,
+            "star": self._h_star,
         }
-
-    def _h_default(self, tag, list_with_star):
-        print("[DEBUG] Nu recunoastem {}".format(tag))
-        return ""
 
     def _h_random(self, tag, list_with_star):
         response = ""
         lis = tag.findChildren("li")
         li = random.sample(lis, 1).pop()
         return response + self._execute(li, list_with_star)
+
+    def _h_srai(self, tag, list_with_star):
+        response = self._execute(tag, list_with_star)
+        return self.response(response)
+
+    def _h_star(self, tag, list_with_star):
+        response = ""
+        try:
+            if "index" in tag:
+                index = int(tag["index"])
+                for ind, value in list_with_star:
+                    if ind == index:
+                        response += value
+            else:
+                for _, value in list_with_star:
+                    response += value
+        except Exception as exp:
+            print("[DEBUG] Exceptie la star " + str(exp))
+        return response
+
+    def _h_default(self, tag, list_with_star):
+        print("[DEBUG] Nu recunoastem {}".format(tag))
+        return ""
 
     def _h_text(self, tag, list_with_star):
         response = ""
@@ -174,7 +195,7 @@ class Bot(object):
 
     def sort(self, patterns):
         """Sortam tiparele in functie de relevanta."""
-        patterns.sort(key = lambda x: x[2])
+        patterns.sort(key = lambda x: x[2], reverse=True)
         return patterns
 
     def _execute(self, template, list_with_start):
@@ -205,7 +226,7 @@ class Bot(object):
 
         # le sortam in functie de relevanta (alea cu multe * sunt mai proate decat alea normale)
         patterns = self.sort(patterns)
-        # print("[debug] tipare potrivite:", "\n".join([str(p) for p in patterns]))
+        print("[debug] tipare potrivite:", "\n".join([str(p) for p in patterns]))
         # avem match
         if patterns:
             ales = patterns.pop(0)
