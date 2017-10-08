@@ -4,17 +4,20 @@ from __future__ import print_function
 
 import bs4
 from bs4 import BeautifulSoup as Soup
+import time
 
 import util
 
+from threading import Thread
 import re
 import os
 import random
 import datetime
+import string
 
 # alice, standard, None
-# BOT_TYPE = "alice"
-BOT_TYPE = "standard"
+BOT_TYPE = "alice"
+# BOT_TYPE = "standard"
 
 # BOT_TYPE = "alice"
 if BOT_TYPE:
@@ -32,6 +35,13 @@ REMOVE_CHARS = ".!?;[]'{}()"
 CATEGORY = "category"
 TEMPLATE = "template"
 PATTERN = "pattern"
+
+# DEBUG = False
+DEBUG = True
+
+def pprint(*args, **kwargs):
+    if DEBUG:
+        print(*args, **kwargs)
 
 def clean(msg):
     for char in REMOVE_CHARS:
@@ -72,12 +82,12 @@ def check_char(c,length,priority,list_with_star,val,count):
 class Bot(object):
     """Aiml bot."""
     def __init__(self, file_names):
+        global DEBUG
         self._file_names = file_names
         self._patterns = {}
         self._variabile = {}
-        self._bot = {"":""}
+        self._bot = {"name":"Alice"}
 
-        self.learn(self._file_names)
         self._handles = {
             "br": self._h_br,
             "random": self._h_random,
@@ -92,14 +102,24 @@ class Bot(object):
             "size": self._h_size,
             "uppercase": self._h_uppercase,
             "lowecase": self._h_lowercase,
-            "title": self._h_formal,
+            "formal": self._h_formal,
             "think": self._h_think,
             "set": self._h_set,
             "gossip": self._h_gossip,
             "person": self._h_person,
             "person2": self._h_person2,
-            "gender": self._h_gender
+            "gender": self._h_gender,
+            "condition": self._h_condition,
+
+            # evitam erorile
+            "eval": lambda *args, **kwargs: "",
+            "learn": lambda *args, **kwargs: ""
         }
+
+        now = DEBUG
+        DEBUG = False
+        self.learn(self._file_names)
+        DEBUG = now
 
     def _h_br(self, tag, list_with_star):
         return "\n"
@@ -107,24 +127,23 @@ class Bot(object):
         response = self._execute(tag, list_with_star)
         for re, val in util.defaultGender.items():
             response.replace(re, val)
+
         return response
 
     def _h_person(self, tag, list_with_star):
         response = self._execute(tag, list_with_star)
         for re, val in util.defaultPerson.items():
             response.replace(re, val)
+        if not response.strip() or tag.is_empty_element:
+            response += " ".join(y for _, y in list_with_star)
         return response
 
     def _h_person2(self, tag, list_with_star):
         response = self._execute(tag, list_with_star)
         for re, val in util.defaultPerson2.items():
             response.replace(re, val)
-        return response
-
-    def _h_person(self, tag, list_with_star):
-        response = self._execute(tag, list_with_star)
-        for re, val in util.defaultPerson.items():
-            response.replace(re, val)
+        if not response.strip() and tag.is_empty_element:
+            response += " ".join(y for _, y in list_with_star)
         return response
 
     def _h_gossip(self, tag, list_with_star):
@@ -136,7 +155,7 @@ class Bot(object):
     def _h_set(self, tag, list_with_star):
         response = self._execute(tag, list_with_star)
         self._variabile[tag["name"]] = response
-        return ""
+        return response
 
     def _h_think(self, tag, list_with_star):
         self._execute(tag, list_with_star)
@@ -169,6 +188,28 @@ class Bot(object):
     def _h_get(self, tag, list_with_star):
         return self._variabile.get(tag.get("name", ""), "")
 
+
+    def _h_condition(self, tag, list_with_star):
+        response = ""
+        lis = tag.findChildren("li")
+        name = tag.get("name", "")
+        for li in lis:
+            value = li.get("value", "")
+            # NOTE("manimulare regex")
+            if value == "*":
+                value = ".*"
+            if name in self._variabile:
+                my_val = self._variabile[name]
+                if re.findall(value, my_val):
+                    response += self._execute(li, list_with_star)
+                    break
+        else:
+            for li in lis:
+                value = li.get("value", None)
+                if not name and not value:
+                    response += self._execute(li, list_with_star)
+                    break
+        return response
 
     def _h_random(self, tag, list_with_star):
         response = ""
@@ -206,17 +247,25 @@ class Bot(object):
         return response + self._execute(li, list_with_star)
 
     def _learn(self, file_name):
+        start = time.time()
         data = open(file_name, "r").read()
         soup = Soup(data, "lxml")
 
         for category in soup.findChildren(CATEGORY):
-            self._patterns[category.find(PATTERN)] = category.findChildren(TEMPLATE)
+            self._patterns[self._execute(category.find(PATTERN), [])] = category.findChildren(TEMPLATE)
+        end = time.time()
+        print("[LEARNING] {} in {}".format(file_name, end-start))
 
 
     def learn(self, file_names):
         """Learn from the aiml files."""
+        # threads = []
         for f in file_names:
+            # t = Thread(target=self._learn, args=(f, ))
+            # t.start()
+            # threads.append(t)
             self._learn(f)
+        # [t.join() for t in threads]
 
     def _match(self, pattern_text, message):
         """Returneaza True data pattern_text se potriveste cu message."""
@@ -289,27 +338,39 @@ class Bot(object):
         """Return the patterns that matches"""
         patterns = []
         for pattern in self._patterns.keys():
-            tem = self._match(pattern.text, message)
+            text = pattern
+            # text = pattern.text
+            # text = self._execute(pattern, [])
+            tem = self._match(text, message)
             if tem[0]:
                 patterns.append((pattern, tem[1], tem[2]))
         return patterns
 
     def sort(self, patterns):
         """Sortam tiparele in functie de relevanta."""
-        patterns.sort(key = lambda x: x[2], reverse=True)
-        return patterns
+        has_star = [p for p in patterns if "*" in p[0]]
+        has_under = [p for p in patterns if "_" not in p[0]]
+        full = [p for p in patterns if ("*" not in p[0] and "_" not in p[0])]
+
+        has_star.sort(key = lambda x: x[2], reverse=True)
+        has_under.sort(key = lambda x: x[2], reverse=True)
+        full.sort(key = lambda x: x[2], reverse=True)
+
+        #patterns.sort(key = lambda x: x[2], reverse=True)
+        return full + has_under + has_star
 
     def _execute(self, template, list_with_start):
+        pprint("[CALL execute] Tag: {}".format(template))
         response = ""
+
         for content in template.contents:
-            # print("CONTENT - ", content, " - ", type(content))
             if isinstance(content, (str, bs4.element.NavigableString)):
-                # print("STR - ", content)
                 response += content
             elif isinstance(content, bs4.element.Tag):
                 to_run = self._handles.get(content.name, self._h_default)
-                print("[debug] Tag {} running {}".format(content, to_run))
-                response += to_run(content, list_with_start)
+                got = to_run(content, list_with_start)
+                pprint("[debug] Tag {} running {} = {}".format(content, to_run, got))
+                response += got
         return response
 
 
@@ -317,6 +378,7 @@ class Bot(object):
         total_response = ""
         for template in templates:
             total_response += self._execute(template, list_with_star)
+            break # alege daor un template
         return total_response
 
 
@@ -325,16 +387,22 @@ class Bot(object):
         # normalizarea
         for re, val in util.defaultNormal.items():
             message.replace(re, val)
+        new_msg = message
+        for letter in message:
+            if letter not in string.letters:
+                new_msg.replace(letter, " ")
+        message = new_msg
+
         # vedem ce tipare se potrivesc
         patterns = self.match(message)
 
         # le sortam in functie de relevanta (alea cu multe * sunt mai proate decat alea normale)
         patterns = self.sort(patterns)
-        # print("[debug] tipare potrivite:", "\n".join([str(p) for p in patterns]))
+        pprint("[debug] tipare potrivite:", "\n".join([str(p) for p in patterns]))
         # avem match
         if patterns:
             ales = patterns.pop(0)
-            print("[DEBUG] Pattern ales", ales)
+            pprint("[DEBUG] Pattern ales", ales, "---", self._patterns[ales[0]])
             return self._handle(self._patterns[ales[0]], ales[1])
         return DEFAULT_RESPONSE
 

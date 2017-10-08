@@ -117,3 +117,7 @@ defaultNormal = {
     "it'd": "it would",
     "it'll": "it will",
 }
+
+BOD_DATA = {
+    "name": "Alice"
+}
