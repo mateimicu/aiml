@@ -29,7 +29,6 @@ DEFAULT_RESPONSE = "Nu am inteles"
 EXIT = "exit"
 BYE = "Bye Bye!"
 
-LAST_TAGS = []
 
 REMOVE_CHARS = ".!?;[]'{}()"
 
@@ -85,7 +84,8 @@ def check_char(c,length,priority,list_with_star,val,count):
 class Bot(object):
     """Aiml bot."""
     def __init__(self, file_names):
-        global DEBUG, LAST_TAGS, RECURSIVE
+        global DEBUG, RECURSIVE
+        self._last_tags = []
         self._file_names = file_names
         self._patterns = {}
         self._variabile = {}
@@ -223,7 +223,7 @@ class Bot(object):
 
     def _h_srai(self, tag, list_with_star):
         response = self._execute(tag, list_with_star)
-        return self.response(response)
+        return self._response(response)
 
     def _h_star(self, tag, list_with_star):
         response = ""
@@ -364,13 +364,13 @@ class Bot(object):
         return full + has_under + has_star
 
     def _execute(self, template, list_with_start):
-        global LAST_TAGS , RECURSIVE
+        global  RECURSIVE
         pprint("[CALL execute] Tag: {}".format(template))
-        pprint("[Recursive {}] : {}".format(RECURSIVE, LAST_TAGS))
+        pprint("[Recursive {}] : {}".format(RECURSIVE, self._last_tags))
         if RECURSIVE:
-            if (str(template.contents), template.text) in [(str(t.contents), t.text) for t in LAST_TAGS]:
-                return self.response(" ")
-            LAST_TAGS.append(template)
+            if (str(template.contents), template.text) in [(str(t.contents), t.text) for t in self._last_tags]:
+                return "I don't really comprehend"
+            self._last_tags.append(template)
         response = ""
 
         for content in template.contents:
@@ -392,9 +392,8 @@ class Bot(object):
         return total_response
 
 
-    def response(self, message):
+    def _response(self, message):
         """Returneza raspunsul."""
-        global LAST_TAGS
         # normalizarea
         for re, val in util.defaultNormal.items():
             message.replace(re, val)
@@ -414,11 +413,13 @@ class Bot(object):
         if patterns:
             ales = patterns.pop(0)
             pprint("[DEBUG] Pattern ales", ales, "---", self._patterns[ales[0]])
-            LAST_TAGS = []
             return self._handle(self._patterns[ales[0]], ales[1])
 
-        LAST_TAGS = []
         return DEFAULT_RESPONSE
+
+    def response(self, message):
+        self._last_tags= []
+        return self._response(message)
 
 
 def main():
